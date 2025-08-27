@@ -12,9 +12,11 @@ else:
     CHANNEL_ID = -1001717037581
 
 
-PLECHO            = 20
-nowprcentforstart = 5
-stoploss_fist     = 5
-main_stoploss     = 40
-prcents           = [70, 20, 9.5, 100]
-new_take_profit   = 2
+PLECHO  = 20
+NOW_PERCENT_FOR_START = 5
+FIRST_STOPLOSS = 5
+MAIN_STOPLOSS = 40
+PERCENTS = [70, 20, 9.5, 100]
+NEW_TAKE_PROFIT = 2
+BALANCE_BYBIT = 10000
+NOW_LEVERAGE = PLECHO

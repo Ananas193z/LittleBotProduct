@@ -1,5 +1,5 @@
 import requests
-from config import BOT_API_KEY, ANDEJ_CHAT_ID
+from core.config import BOT_API_KEY, ANDEJ_CHAT_ID
 import threading
 
 def notify_async(message: str):
@@ -18,8 +18,8 @@ def sendMessageToTelegram(token: str, chat_id: int, message: str):
     try:
         response = requests.post(url, data=payload)
         if response.status_code == 200:
-            print("✅ Сообщение успешно отправлено.")
+            print("✅ The message has been successfully sent.")
         else:
-            print("❌ Ошибка при отправке:", response.text)
+            print("❌ Error sending:", response.text)
     except Exception as e:
-        print("⚠️ Ошибка запроса:", e)
+        print("⚠️ Request error:", e)

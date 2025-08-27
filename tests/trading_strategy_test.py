@@ -1,8 +1,8 @@
 from datetime import time
 
-from config import stoploss_fist, API_KEY, API_SECRET
-from telegram_send_logs import notify_async
-from trading_utils import current_position_bybit
+from core.config import FIRST_STOPLOSS, API_KEY, API_SECRET
+from logs.telegram_send_logs import notify_async
+from core.utils.trading_utils import current_position_bybit
 from pybit.unified_trading import HTTP
 
 if __name__ == '__main__':
@@ -44,9 +44,9 @@ if __name__ == '__main__':
         time.sleep(1)
 
     if str(action) == 'Buy':
-        newstoploss = float(entry_price) * (((stoploss_fist/NOW_LEVERAGE)/100) + 1)
+        newstoploss = float(entry_price) * (((FIRST_STOPLOSS / NOW_LEVERAGE) / 100) + 1)
     elif str(action) == 'Sell':
-        newstoploss = float(entry_price) * (1 - ((stoploss_fist/NOW_LEVERAGE)/100))
+        newstoploss = float(entry_price) * (1 - ((FIRST_STOPLOSS / NOW_LEVERAGE) / 100))
     else:
         newstoploss = float(entry_price)
 
@@ -64,7 +64,7 @@ if __name__ == '__main__':
         _, size_cur, avg_price = current_position_bybit(session, symbol)
         print(size_cur)
         if size_cur == 0:
-            notify_async(f'{symbol} Стоп лосс ❌ (+{stoploss_fist}%)')
+            notify_async(f'{symbol} Стоп лосс ❌ (+{FIRST_STOPLOSS}%)')
             ostatok = size_cur
             break
         elif size_cur <= max(0, ostatok - second_qty * 0.99):

@@ -1,5 +1,5 @@
 import time
-from config import *
+from core.config import *
 from pybit.unified_trading import HTTP
 from datetime import datetime, timedelta
 

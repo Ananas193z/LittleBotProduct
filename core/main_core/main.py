@@ -1,15 +1,13 @@
 from telethon import TelegramClient, events
 from pybit.unified_trading import HTTP
-from parse_utils import parse_signal
-from bybit_main import start_traiding
+from core.utils.parse_utils import parse_signal
+from core.main_core.bybit_main import start_traiding
 import threading
-from config import *
+from core.config import *
 
 
 session = HTTP(demo=True, api_key=API_KEY, api_secret=API_SECRET)
-
 client = TelegramClient("session_name", API_ID, API_HASH)
-
 
 async def main():
     # Вход в аккаунт, если требуется
@@ -39,9 +37,7 @@ async def main():
             ).start()
         else:
             print('Это не сигнал')
-    
-    
+
     await client.run_until_disconnected()
-    
 
 client.loop.run_until_complete(main())
