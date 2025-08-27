@@ -1,6 +1,6 @@
 from pybit.unified_trading import HTTP
 from bybitchecker import get_price_from_bybit, get_aleivebel_balance
-from trading_startegy import monitor_and_update_stop
+from trading_strategy import monitor_and_update_stop
 from trading_utils import has_position
 from telegram_send_logs import notify_async
 from datetime import datetime, timedelta

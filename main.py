@@ -6,7 +6,6 @@ import threading
 from config import *
 
 
-
 session = HTTP(demo=True, api_key=API_KEY, api_secret=API_SECRET)
 
 client = TelegramClient("session_name", API_ID, API_HASH)
