@@ -1,0 +1,20 @@
+API_KEY = "KgAb27DWwLEHm3t9xe"
+API_SECRET  = "ynTuNqzi8tB7Li7PnMxPtlULr12DyHBkG8sa"
+BOT_API_KEY = "8298739838:AAEeV0u7dxwNmigZR6dJOY3JJW4mYnXuY5M"
+API_ID = 27776646  # Ваш API ID
+API_HASH = "df812472193c7944116b750c1260d0a8"  # Ваш API Hash
+PHONE_NUMBER = "+421915170050"  # Ваш номер телефона
+ANDREJ = False
+ANDEJ_CHAT_ID = -4951646203
+if ANDREJ:
+    CHANNEL_ID = 1343852948
+else:
+    CHANNEL_ID = -1001717037581
+
+
+PLECHO            = 20
+nowprcentforstart = 5
+stoploss_fist     = 5
+main_stoploss     = 40
+prcents           = [70, 20, 9.5, 100]
+new_take_profit   = 2
