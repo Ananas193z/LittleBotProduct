@@ -12,7 +12,7 @@ client = TelegramClient("session_name", API_ID, API_HASH)
 async def main():
     # Вход в аккаунт, если требуется
     await client.start(PHONE_NUMBER)
-    print("Бот запущен и слушает канал...")
+    print("The bot is running and listening to the channel...")
 
     @client.on(events.NewMessage(chats=CHANNEL_ID))
     async def new_message_handler(event):
@@ -36,7 +36,7 @@ async def main():
                 args=(session, str(event.message.text), signal_data)
             ).start()
         else:
-            print('Это не сигнал')
+            print('This is not a signal.')
 
     await client.run_until_disconnected()
 

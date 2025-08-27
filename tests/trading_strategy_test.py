@@ -1,6 +1,4 @@
 import time
-from core.config import FIRST_STOPLOSS, API_KEY, API_SECRET
-from core.main_core.help_func.current_position_bybit import calculate_new_stoploss
 from logs.telegram_send_logs import notify_async
 from core.utils.trading_utils import current_position_bybit
 from pybit.unified_trading import HTTP
@@ -44,60 +42,3 @@ def update_stop_loss(session, symbol, side, stop_price):
     print("Stop loss updated:", resp)
     notify_async(f'{symbol} Stop loss moved to level: {stop_price}')
     return resp
-
-
-if __name__ == '__main__':
-    session = HTTP(demo=True, api_key=API_KEY, api_secret=API_SECRET)
-    symbol = 'VELODROMEUSDT'
-    total_size = 45000
-    action = 'Buy'
-    NOW_LEVERAGE = 20
-    market_order_id = ''
-    
-    # Take profit and quantities
-    take_profits = [0.05663, 0.05724]          # Can add more if needed
-    quantities = [31500, 9000, 4275]
-
-    # Get entry price
-    entry_price = get_entry_price(session, symbol, market_order_id)
-    print("Entry price (BE):", entry_price)
-
-    # Calculate first stop loss
-    new_stop_loss = calculate_new_stoploss(entry_price, action, FIRST_STOPLOSS, NOW_LEVERAGE)
-
-    # Define steps: each step is a dict with qty, tp, messages, stop price
-    steps = [
-        {
-            "qty": quantities[0],
-            "tp": take_profits[0],
-            "tp_msg": f'{symbol} First take ✅ (+40%)',
-            "sl_msg": f'{symbol} Stop loss ❌ (-20%)',
-            "stop_price": new_stop_loss
-        },
-        {
-            "qty": quantities[1],
-            "tp": take_profits[1],
-            "tp_msg": f'{symbol} Second take ✅ (+60%)',
-            "sl_msg": f'{symbol} Stop loss ❌ (+{FIRST_STOPLOSS}%)',
-            "stop_price": take_profits[0]
-        },
-        {
-            "qty": quantities[2],
-            "tp": None,  # No TP price needed, just final stop
-            "tp_msg": f'{symbol} Third take ✅ (+80%)',
-            "sl_msg": f'{symbol} Stop loss ❌ (+{take_profits[0]}%)',
-            "stop_price": take_profits[1]
-        }
-    ]
-
-    remaining_size = total_size
-    for step in steps:
-        target_size = max(0, remaining_size - step["qty"] * 0.99)
-        remaining_size = wait_for_position_fill(
-            session,
-            symbol,
-            target_size,
-            step["tp_msg"],
-            step["sl_msg"]
-        )
-        update_stop_loss(session, symbol, action, step["stop_price"])
