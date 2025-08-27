@@ -1,9 +1,50 @@
-from datetime import time
-
+import time
 from core.config import FIRST_STOPLOSS, API_KEY, API_SECRET
+from core.main_core.help_func.current_position_bybit import calculate_new_stoploss
 from logs.telegram_send_logs import notify_async
 from core.utils.trading_utils import current_position_bybit
 from pybit.unified_trading import HTTP
+
+
+def get_entry_price(session, symbol, order_id):
+    """Get entry price (lastPriceOnCreated) by order."""
+    pos_data = session.get_open_orders(category="linear", symbol=symbol, order_id=order_id)
+    if "result" in pos_data and pos_data["result"]["list"]:
+        try:
+            return float(pos_data["result"]["list"][0]["lastPriceOnCreated"])
+        except Exception as e:
+            print("Error retrieving entry price:", e)
+            return None
+    print("Failed to get data for the open position.")
+    return None
+
+
+def wait_for_position_fill(session, symbol, target_size, tp_message, sl_message):
+    """Wait until position size reaches target or zero, then notify."""
+    while True:
+        _, size_cur, _ = current_position_bybit(session, symbol)
+        if size_cur == 0:
+            notify_async(sl_message)
+            return size_cur
+        elif size_cur <= target_size:
+            notify_async(tp_message)
+            return size_cur
+        time.sleep(1)
+
+
+def update_stop_loss(session, symbol, side, stop_price):
+    """Set new stop loss and notify."""
+    resp = session.set_trading_stop(
+        category="linear",
+        symbol=symbol,
+        side=side,
+        stopLoss=stop_price,
+        positionIdx=0
+    )
+    print("Stop loss updated:", resp)
+    notify_async(f'{symbol} Stop loss moved to level: {stop_price}')
+    return resp
+
 
 if __name__ == '__main__':
     session = HTTP(demo=True, api_key=API_KEY, api_secret=API_SECRET)
@@ -12,97 +53,51 @@ if __name__ == '__main__':
     action = 'Buy'
     NOW_LEVERAGE = 20
     market_order_id = ''
-    first_take_profit = 0.05663
-    second_take_profit = 0.05724
-    first_qty = 31500
-    second_qty = 9000
-    third_qty = 4275
+    
+    # Take profit and quantities
+    take_profits = [0.05663, 0.05724]          # Can add more if needed
+    quantities = [31500, 9000, 4275]
 
-    pos_data = session.get_open_orders(category="linear", symbol=symbol, order_id=market_order_id)
-    if "result" in pos_data:
-        try:
-            entry_price = float(pos_data["result"]["list"][0]["lastPriceOnCreated"])
-        except Exception as e:
-            print("Ошибка при извлечении цены входа:", e)
-            entry_price = None
-        print("Цена входа (БЕ):", entry_price)
-    else:
-        print("Не удалось получить данные открытой позиции.")
-        entry_price = None
+    # Get entry price
+    entry_price = get_entry_price(session, symbol, market_order_id)
+    print("Entry price (BE):", entry_price)
 
-    while True:
-        _, size_cur, avg_price = current_position_bybit(session, symbol)
-        #print(size_cur)
-        if size_cur == 0:
-            notify_async(f'{symbol} Стоп лосс ❌ (-20%)')
-            ostatok = size_cur
-            break
-        elif size_cur <= max(0, total_size - first_qty * 0.99):
-            notify_async(f'{symbol} Перый тейк ✅ (+40%)')
-            ostatok = size_cur
-            break
-        time.sleep(1)
+    # Calculate first stop loss
+    new_stop_loss = calculate_new_stoploss(entry_price, action, FIRST_STOPLOSS, NOW_LEVERAGE)
 
-    if str(action) == 'Buy':
-        newstoploss = float(entry_price) * (((FIRST_STOPLOSS / NOW_LEVERAGE) / 100) + 1)
-    elif str(action) == 'Sell':
-        newstoploss = float(entry_price) * (1 - ((FIRST_STOPLOSS / NOW_LEVERAGE) / 100))
-    else:
-        newstoploss = float(entry_price)
+    # Define steps: each step is a dict with qty, tp, messages, stop price
+    steps = [
+        {
+            "qty": quantities[0],
+            "tp": take_profits[0],
+            "tp_msg": f'{symbol} First take ✅ (+40%)',
+            "sl_msg": f'{symbol} Stop loss ❌ (-20%)',
+            "stop_price": new_stop_loss
+        },
+        {
+            "qty": quantities[1],
+            "tp": take_profits[1],
+            "tp_msg": f'{symbol} Second take ✅ (+60%)',
+            "sl_msg": f'{symbol} Stop loss ❌ (+{FIRST_STOPLOSS}%)',
+            "stop_price": take_profits[0]
+        },
+        {
+            "qty": quantities[2],
+            "tp": None,  # No TP price needed, just final stop
+            "tp_msg": f'{symbol} Third take ✅ (+80%)',
+            "sl_msg": f'{symbol} Stop loss ❌ (+{take_profits[0]}%)',
+            "stop_price": take_profits[1]
+        }
+    ]
 
-    first_stop_resp = session.set_trading_stop(
-        category="linear",
-        symbol=symbol,
-        side=action,
-        stopLoss=newstoploss,
-        positionIdx=0
-    )
-    print("Стоп-лосс обновлён:", first_stop_resp)
-    notify_async(f'{symbol} Стоп лосс перемещён на уровень: {newstoploss}')
-
-    while True:
-        _, size_cur, avg_price = current_position_bybit(session, symbol)
-        print(size_cur)
-        if size_cur == 0:
-            notify_async(f'{symbol} Стоп лосс ❌ (+{FIRST_STOPLOSS}%)')
-            ostatok = size_cur
-            break
-        elif size_cur <= max(0, ostatok - second_qty * 0.99):
-            notify_async(f'{symbol} Второй тейк ✅ (+60%)')
-            ostatok = size_cur
-            break
-        time.sleep(1)
-
-    second_stop_resp = session.set_trading_stop(
-        category="linear",
-        symbol=symbol,
-        side=action,
-        stopLoss=first_take_profit,
-        positionIdx=0
-    )
-    print("Стоп-лосс обновлён:", second_stop_resp)
-    notify_async(f'{symbol} Стоп лосс перемещён на уровень: {newstoploss}')
-
-
-    while True:
-        _, size_cur, avg_price = current_position_bybit(session, symbol)
-        print(size_cur)
-        if size_cur == 0:
-            notify_async(f'{symbol} Стоп лосс ❌ (+{first_take_profit}%)')
-            ostatok = size_cur
-            break
-        elif size_cur <= max(0, ostatok - third_qty * 0.99):
-            notify_async(f'{symbol} Третий тейк ✅ (+80%)')
-            ostatok = size_cur
-            break
-        time.sleep(1)
-
-    third_stop_resp = session.set_trading_stop(
-        category="linear",
-        symbol=symbol,
-        side=action,
-        stopLoss=second_take_profit,
-        positionIdx=0
-    )
-    print("Стоп-лосс обновлён:", third_stop_resp)
-    notify_async(f'{symbol} Стоп лосс перемещён на уровень: {newstoploss}')
+    remaining_size = total_size
+    for step in steps:
+        target_size = max(0, remaining_size - step["qty"] * 0.99)
+        remaining_size = wait_for_position_fill(
+            session,
+            symbol,
+            target_size,
+            step["tp_msg"],
+            step["sl_msg"]
+        )
+        update_stop_loss(session, symbol, action, step["stop_price"])
