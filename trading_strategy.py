@@ -1,15 +1,8 @@
-# trading_utils.py
-import time
-from config import *
 from trading_utils  import *
-from datetime import datetime, timedelta
 from telegram_send_logs import notify_async
 
 
 def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prcents, stoploss_fist, market_order_id, entry_time, NOW_LEVERAGE):
-    # Определяем закрывающую сторону: если позиция открыта на Buy (лонг), для закрытия используется Sell; если Sell — то Buy.
-    start_ms = int(entry_time.timestamp() * 1000)
-    ostatok = 0
     closing_side = "Sell" if action == "Buy" else "Buy"
 
     # Получаем данные ордера для получения цены входа (entry price)
@@ -30,7 +23,6 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
 
     # Рассчитываем параметры лимитного ордера
     first_qty = round((total_size * (prcents[0]/100)), 0)
-    #first_take_profit = tp_profits[0]
     
     if str(action) == 'Buy':
         first_take_profit = float(tp_profits[0]) * (1 - ((new_take_profit/NOW_LEVERAGE)/100))
@@ -46,7 +38,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     first_order_data = {
         "category": "linear",
         "symbol": symbol,
-        "side": closing_side,       # Используем переменную closing_side
+        "side": closing_side,
         "orderType": "Limit",
         "qty": first_qty,
         "price": first_take_profit,
@@ -58,12 +50,6 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     print(f"Размещаем лимитный ордер на закрытие {prcents[0]}% позиции по цене:", first_take_profit)
     first_limit_order_response = session.place_order(**first_order_data)
     print("Ответ от сервера:", first_limit_order_response)
-    first_limit_order_id = first_limit_order_response["result"]["orderId"]
-    
-    
-    
-    
-        
     second_qty = round((total_size * (prcents[1]/100)), 0)
     second_take_profit = tp_profits[1]
     print("Рассчитанная цена для лимитного ордера:", second_take_profit)
@@ -72,7 +58,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     second_order_data = {
         "category": "linear",
         "symbol": symbol,
-        "side": closing_side,       # Используем переменную closing_side
+        "side": closing_side,
         "orderType": "Limit",
         "qty": second_qty,
         "price": second_take_profit,
@@ -84,12 +70,6 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     print(f"Размещаем лимитный ордер на закрытие {prcents[1]}% позиции по цене:", second_take_profit)
     second_limit_order_response = session.place_order(**second_order_data)
     print("Ответ от сервера:", second_limit_order_response)
-    second_limit_order_id = second_limit_order_response["result"]["orderId"]
-    
-    
-    
-    
-        
     third_qty = round((total_size * (prcents[2]/100)), 0)
     third_take_profit = tp_profits[2]
     print("Рассчитанная цена для лимитного ордера:", third_take_profit)
@@ -98,7 +78,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     third_order_data = {
         "category": "linear",
         "symbol": symbol,
-        "side": closing_side,       # Используем переменную closing_side
+        "side": closing_side,
         "orderType": "Limit",
         "qty": third_qty,
         "price": third_take_profit,
@@ -110,12 +90,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     print(f"Размещаем лимитный ордер на закрытие {prcents[2]}% позиции по цене:", second_take_profit)
     third_limit_order_response = session.place_order(**third_order_data)
     print("Ответ от сервера:", third_limit_order_response)
-    third_limit_order_id = third_limit_order_response["result"]["orderId"]
-    
-    
-    
-    
-    
+
     # Опрос статуса ордера каждую секунду
     while True:
         _, size_cur, avg_price = current_position_bybit(session, symbol)
@@ -128,8 +103,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
             ostatok = size_cur
             break
         time.sleep(1)
-        
-    
+
     if str(action) == 'Buy':
         newstoploss = float(entry_price) * (((stoploss_fist/NOW_LEVERAGE)/100) + 1)
     elif str(action) == 'Sell':
@@ -146,18 +120,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     )
     print("Стоп-лосс обновлён:", first_stop_resp)
     notify_async(f'{symbol} 🛑 Stop loss moved to level: {newstoploss}')
-    # try:
-    #     first_exit_time = datetime.utcnow()
-    #     first_end_ms = int(first_exit_time.timestamp() * 1000)
-    #     first_pnl = get_closed_pnl(session, symbol, start_ms, first_end_ms)
-    #     for d in first_pnl:
-    #         first_pnl_formated = f"[{d['symbol']}] Закрыт ордер {d['orderId']} | PNL: {d['closedPnl']} | Side: {d['side']} | Entry: {d['avgEntryPrice']} → Exit: {d['avgExitPrice']}"
-    #     notify_async(first_pnl_formated)
-    # except:
-    #     print('First get pnl error')
 
-    
-    
     # Опрос статуса ордера каждую секунду
     while True:
         _, size_cur, avg_price = current_position_bybit(session, symbol)
@@ -170,8 +133,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
             ostatok = size_cur
             break
         time.sleep(1)
-        
-        
+
     second_stop_resp = session.set_trading_stop(
         category="linear",
         symbol=symbol,
@@ -181,20 +143,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     )
     print("Стоп-лосс обновлён:", second_stop_resp)
     notify_async(f'{symbol} 🛑 Stop loss moved to level: {first_take_profit}')
-    # try:
-    #     second_exit_time = datetime.utcnow()
-    #     second_end_ms = int(second_exit_time.timestamp() * 1000)
-    #     second_pnl = get_closed_pnl(session, symbol, start_ms, second_end_ms)
-    #     for d in second_pnl:
-    #         second_pnl_formated = f"[{d['symbol']}] Закрыт ордер {d['orderId']} | PNL: {d['closedPnl']} | Side: {d['side']} | Entry: {d['avgEntryPrice']} → Exit: {d['avgExitPrice']}"
-    #     notify_async(second_pnl_formated)
-    # except:
-    #     print('Second get pnl error')
-    
-    
-    
-    
-    
+
     # Опрос статуса ордера каждую секунду
     while True:
         _, size_cur, avg_price = current_position_bybit(session, symbol)
@@ -207,8 +156,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
             ostatok = size_cur
             break
         time.sleep(1)
-    
-    
+
     third_stop_resp = session.set_trading_stop(
         category="linear",
         symbol=symbol,
@@ -218,18 +166,7 @@ def monitor_and_update_stop(session, symbol, action, total_size, tp_profits, prc
     )
     print("Стоп-лосс обновлён:", third_stop_resp)
     notify_async(f'{symbol} 🛑 Stop loss moved to level: {second_take_profit}')
-    # try:
-    #     third_exit_time = datetime.utcnow()
-    #     third_end_ms = int(third_exit_time.timestamp() * 1000)
-    #     third_pnl = get_closed_pnl(session, symbol, start_ms, third_end_ms)
-    #     for d in third_pnl:
-    #         third_pnl_formated = f"[{d['symbol']}] Закрыт ордер {d['orderId']} | PNL: {d['closedPnl']} | Side: {d['side']} | Entry: {d['avgEntryPrice']} → Exit: {d['avgExitPrice']}"
-    #     notify_async(third_pnl_formated)
-    # except:
-    #     print('Third get pnl error')
-    
-    
-    
+
     
 if __name__ == '__main__':
     session = HTTP(demo=True, api_key=API_KEY, api_secret=API_SECRET)
@@ -268,8 +205,7 @@ if __name__ == '__main__':
             ostatok = size_cur
             break
         time.sleep(1)
-        
-    
+
     if str(action) == 'Buy':
         newstoploss = float(entry_price) * (((stoploss_fist/NOW_LEVERAGE)/100) + 1)
     elif str(action) == 'Sell':
@@ -286,8 +222,7 @@ if __name__ == '__main__':
     )
     print("Стоп-лосс обновлён:", first_stop_resp)
     notify_async(f'{symbol} Стоп лосс перемещён на уровень: {newstoploss}')
-    
-    
+
     while True:
         _, size_cur, avg_price = current_position_bybit(session, symbol)
         print(size_cur)
@@ -300,8 +235,7 @@ if __name__ == '__main__':
             ostatok = size_cur
             break
         time.sleep(1)
-        
-        
+
     second_stop_resp = session.set_trading_stop(
         category="linear",
         symbol=symbol,
@@ -325,8 +259,7 @@ if __name__ == '__main__':
             ostatok = size_cur
             break
         time.sleep(1)
-    
-    
+
     third_stop_resp = session.set_trading_stop(
         category="linear",
         symbol=symbol,
